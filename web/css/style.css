@@ -1,0 +1,152 @@
+/* 基本設定與RWD */
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #1a1a1a;
+    color: #fff;
+    text-align: center;
+}
+
+#game-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+/* 畫面切換 */
+.screen {
+    display: none;
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.screen.active {
+    display: flex;
+}
+
+/* 按鈕樣式 */
+button {
+    padding: 15px 30px;
+    font-size: 2em;
+    cursor: pointer;
+    border: 3px solid #fff;
+    background-color: transparent;
+    color: #fff;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+button:hover {
+    background-color: #fff;
+    color: #1a1a1a;
+}
+
+button:disabled {
+    border-color: #555;
+    color: #555;
+    cursor: not-allowed;
+}
+
+button:disabled:hover {
+    background-color: transparent;
+    color: #555;
+}
+
+
+/* 加入遊戲畫面 */
+#join-screen h2 {
+    font-size: 2.5em;
+}
+#qrcode {
+    padding: 10px;
+    background: white;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+#mobile-url {
+    font-size: 1.2em;
+    color: #ccc;
+}
+.teams-container {
+    display: flex;
+    width: 80%;
+    justify-content: space-around;
+    margin-top: 30px;
+}
+.team-lobby {
+    width: 45%;
+}
+.team-lobby h3 {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+}
+#team-green-lobby h3 { color: #4CAF50; }
+#team-white-lobby h3 { color: #f1f1f1; }
+
+.team-lobby ul {
+    list-style: none;
+    padding: 0;
+    font-size: 1.5em;
+}
+
+/* 遊戲進行中畫面 */
+#game-play-screen {
+    flex-direction: row;
+}
+
+.team-panel {
+    width: 50%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.team-green { background-color: #4CAF50; }
+.team-white { background-color: #f1f1f1; }
+
+.score {
+    font-size: 8em;
+    font-weight: bold;
+    position: absolute;
+    top: 20px;
+    opacity: 0.5;
+}
+.team-white .score { color: #333; }
+
+.alien {
+    width: 100px;
+    height: 100px;
+    background-color: #fff; /* 稍後用圖片取代 */
+    border-radius: 50%;
+    position: relative;
+    /* 動畫會透過JS控制 */
+    transition: top 0.1s linear;
+}
+
+.team-green .alien {
+    background-color: #fff;
+    box-shadow: 0 0 20px #fff;
+}
+
+.team-white .alien {
+    background-color: #333;
+    box-shadow: 0 0 20px #333;
+}
+
+/* 遊戲結束畫面 */
+#game-over-screen h2 {
+    font-size: 5em;
+} 

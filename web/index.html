@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>哈囉UFO！</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- 遊戲準備畫面 -->
+        <div id="lobby-screen" class="screen active">
+            <h1>哈囉UFO！體感對戰</h1>
+            <button id="new-game-btn">開啟新遊戲</button>
+        </div>
+
+        <!-- 等待玩家加入畫面 -->
+        <div id="join-screen" class="screen">
+            <h2>用手機掃描QR Code或瀏覽以下網址加入遊戲</h2>
+            <div id="qrcode"></div>
+            <p id="mobile-url"></p>
+            <div class="teams-container">
+                <div id="team-green-lobby" class="team-lobby">
+                    <h3>綠隊</h3>
+                    <ul id="green-team-players"></ul>
+                </div>
+                <div id="team-white-lobby" class="team-lobby">
+                    <h3>白隊</h3>
+                    <ul id="white-team-players"></ul>
+                </div>
+            </div>
+            <button id="start-game-btn" disabled>開始遊戲</button>
+        </div>
+
+        <!-- 遊戲進行中畫面 -->
+        <div id="game-play-screen" class="screen">
+            <div class="team-panel team-green">
+                <div class="score" id="score-green">0</div>
+                <div class="alien" id="alien-green"></div>
+            </div>
+            <div class="team-panel team-white">
+                <div class="score" id="score-white">0</div>
+                <div class="alien" id="alien-white"></div>
+            </div>
+        </div>
+        
+        <!-- 遊戲結束畫面 -->
+        <div id="game-over-screen" class="screen">
+            <h2 id="winner-announcement"></h2>
+            <button id="restart-game-btn">重新開始</button>
+        </div>
+    </div>
+
+    <!-- MQTT and QR Code libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- Config -->
+    <script src="../config.js"></script>
+    
+    <!-- Game Logic -->
+    <script src="js/game.js"></script>
+</body>
+</html> 
