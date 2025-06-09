@@ -24,6 +24,16 @@
             flex-direction: column;
             align-items: center;
         }
+        #player-name-input {
+            padding: 10px;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            width: 80%;
+            max-width: 300px;
+            text-align: center;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
         #join-btn {
             padding: 20px 40px;
             font-size: 2em;
@@ -61,6 +71,8 @@
 </head>
 <body>
     <div id="controller">
+        <label for="player-name-input">輸入您的名稱</label>
+        <input type="text" id="player-name-input" placeholder="點此輸入...">
         <button id="join-btn">加入遊戲</button>
         <p id="status-message"></p>
     </div>

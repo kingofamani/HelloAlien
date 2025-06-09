@@ -19,13 +19,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const alienGreen = document.getElementById('alien-green');
     const alienWhite = document.getElementById('alien-white');
     const winnerAnnouncement = document.getElementById('winner-announcement');
+    const feedbackGreen = document.getElementById('feedback-green');
+    const feedbackWhite = document.getElementById('feedback-white');
 
     // --- Game State ---
     let mqttClient = null;
-    const players = {}; // { playerId: { team: 'green' | 'white' } }
+    const players = {}; // { playerId: { team: 'green' | 'white', name: 'PlayerName' } }
     let scores = { green: 0, white: 0 };
-    const winningScore = 1000;
+    const winningScore = 2500;
     let gameInterval = null;
+    let lastRhythmEventTime = 0;
 
     // --- MQTT Config ---
     const MQTT_BROKER = 'broker.emqx.io';
@@ -61,24 +64,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleMQTTMessage(msg) {
         console.log('Received message:', msg);
-        const { type, playerId } = msg;
+        const { type, playerId, timestamp, name } = msg;
 
         if (type === 'join' && !players[playerId]) {
-            addPlayer(playerId);
-        } else if (type === 'move' && players[playerId]) {
-            handlePlayerMove(playerId);
+            addPlayer(playerId, name);
+        } else if (type === 'move' && players[playerId] && timestamp) {
+            handlePlayerMove(playerId, timestamp);
         }
     }
     
-    function addPlayer(playerId) {
+    function addPlayer(playerId, name) {
         const greenCount = Object.values(players).filter(p => p.team === 'green').length;
         const whiteCount = Object.values(players).filter(p => p.team === 'white').length;
         
         const team = greenCount <= whiteCount ? 'green' : 'white';
-        players[playerId] = { team };
+        players[playerId] = { team, name: name || `Player ${playerId.substring(0,4)}` };
         
         const playerElement = document.createElement('li');
-        playerElement.textContent = `玩家 ${playerId.substring(0, 4)}`;
+        playerElement.textContent = players[playerId].name;
         
         if (team === 'green') {
             greenTeamPlayers.appendChild(playerElement);
@@ -94,46 +97,97 @@ document.addEventListener('DOMContentLoaded', () => {
         switchScreen('game');
         scores = { green: 0, white: 0 };
         updateScores();
+        lastRhythmEventTime = 0;
         
         // Publish game start message
         mqttClient.publish(MQTT_TOPIC, JSON.stringify({ type: 'game_start' }));
 
         // Start alien animation loop
-        const rhythmSpeed = 1000; // ms for a full up-down cycle
+        const rhythmSpeed = 1200;
+        let lastPosition = 0;
+
         gameInterval = setInterval(() => {
             const now = Date.now();
-            // Simple sine wave for movement
-            const position = Math.sin(now * 2 * Math.PI / rhythmSpeed); // -1 to 1
+            // Sine wave for movement
+            const currentPosition = Math.sin(now * 2 * Math.PI / rhythmSpeed); // -1 to 1
             
-            // Map position to CSS 'top' property. e.g., 40% to 60%
-            const topPercent = 50 + position * 10;
-            
-            alienGreen.style.top = `${topPercent}%`;
-            alienWhite.style.top = `${topPercent}%`;
+            // 改為在波形的底點 (從下降變為上升) 更新節奏點
+            if (lastPosition < 0 && currentPosition >= 0) {
+                lastRhythmEventTime = now;
+                console.log(`Rhythm event (BOTTOM) at: ${now}`);
+            }
 
-        }, 50); // High-frequency update for smooth animation
+            // Map position to CSS 'top' property
+            // 擺動範圍從 10% 到 90%
+            const topPercent = 50 - currentPosition * 40;
+            
+            // 使用 calc() 來減去外星人自身高度的一半 (50px)，確保其中心點在範圍內
+            // 這樣它的頂部範圍約在 10% - 50px, 底部範圍約在 90% + 50px
+            alienGreen.style.top = `calc(${topPercent}% - 50px)`;
+            alienWhite.style.top = `calc(${topPercent}% - 50px)`;
+
+            lastPosition = currentPosition;
+
+        }, 20); // 高頻率更新以確保動畫和偵測流暢
     }
     
-    function handlePlayerMove(playerId) {
-        if (!gameInterval) return; // Game not started
+    function handlePlayerMove(playerId, moveTimestamp) {
+        if (!gameInterval || lastRhythmEventTime === 0) return;
 
         const player = players[playerId];
         if (!player) return;
 
-        const rhythmSpeed = 1000;
-        const now = Date.now();
-        const expectedPhase = (now % rhythmSpeed) / rhythmSpeed; // 0 to 1
-        
-        // Let's assume a 'move' should happen at the bottom of the cycle (phase ~0.75)
-        const timeDiff = Math.abs(expectedPhase - 0.75);
-        
-        // Closer to 0 is better
-        if (timeDiff < 0.1 || timeDiff > 0.9) { // Generous timing window
-            const points = Math.round((0.1 - Math.min(timeDiff, 1 - timeDiff)) * 1000); // Max 100 points
+        // 引入 config.js 的設定
+        const offset = typeof TIME_OFFSET !== 'undefined' ? TIME_OFFSET : 0;
+        const timingWindow = typeof TIMING_RANGE !== 'undefined' ? TIMING_RANGE : 250;
+
+        // 計算原始時間差
+        const rawDiff = moveTimestamp - lastRhythmEventTime;
+        // 校準時間差
+        const calibratedDiff = Math.abs(rawDiff - offset);
+
+        console.log(`Player ${playerId} moved. Calibrated diff: ${calibratedDiff}ms (Raw: ${rawDiff}ms, Offset: ${offset}ms)`);
+
+        // 必須在有效的時間窗口內
+        if (calibratedDiff <= timingWindow) {
+            // 分數計算：差距越小，分數越高
+            const points = Math.round((1 - (calibratedDiff / timingWindow)) * 150); // 滿分 150
             scores[player.team] += points;
+            
+            console.log(`  -> SYNC! +${points} points for team ${player.team}.`);
+            
+            // 在得分時才顯示回饋
+            showFeedback(player, calibratedDiff, points);
+
             updateScores();
             checkWinner();
+        } else {
+            // 如果不同步，可以選擇顯示 'Miss' 或不做任何事
+            // showFeedback(player, 'Miss'); 
+            console.log(`  -> Out of sync.`);
         }
+    }
+
+    function showFeedback(player, diff, points) {
+        const feedbackEl = player.team === 'green' ? feedbackGreen : feedbackWhite;
+        
+        let message = '';
+        if (typeof diff === 'number') {
+            const syncQuality = points > 120 ? 'Perfect!' : (points > 80 ? 'Great!' : 'Good');
+            message = `${player.name}: ${syncQuality} (+${points})`;
+        } else {
+            message = `${player.name}: ${diff}`; // 用於顯示 'Miss' 等文字
+        }
+        
+        feedbackEl.textContent = message;
+        
+        // 使用新的 show class 來觸發動畫
+        feedbackEl.classList.add('show');
+
+        // 在 1 秒後移除 class 以便下次觸發
+        setTimeout(() => {
+            feedbackEl.classList.remove('show');
+        }, 1000);
     }
 
     function updateScores() {

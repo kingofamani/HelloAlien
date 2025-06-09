@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Elements ---
     const joinBtn = document.getElementById('join-btn');
     const statusMessage = document.getElementById('status-message');
+    const playerNameInput = document.getElementById('player-name-input');
     const permissionStatusEl = document.getElementById('permission-status');
     const totalAccelEl = document.getElementById('total-accel');
     const thresholdInfoEl = document.getElementById('threshold-info');
@@ -23,6 +24,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Functions ---
     
+    function generateRandomName() {
+        const adjectives = ["Brave", "Clever", "Shiny", "Cosmic", "Happy", "Fast", "Stellar", "Witty"];
+        const nouns = ["Panda", "Tiger", "Eagle", "Fox", "Lion", "Wolf", "Cobra", "Shark"];
+        return `${adjectives[Math.floor(Math.random() * adjectives.length)]}${nouns[Math.floor(Math.random() * nouns.length)]}${Math.floor(Math.random() * 100)}`;
+    }
+
     function connectMQTT() {
         mqttClient = mqtt.connect(`wss://${MQTT_BROKER}:${MQTT_PORT}/mqtt`, { clientId: playerId });
 
@@ -35,9 +42,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (err) console.error('Subscription error:', err);
             });
 
-            // Send join request
-            mqttClient.publish(MQTT_TOPIC, JSON.stringify({ type: 'join', playerId }));
+            // 讀取玩家名稱，如果為空則使用 placeholder 的隨機名稱
+            const playerName = playerNameInput.value || playerNameInput.placeholder;
+
+            // Send join request with name
+            mqttClient.publish(MQTT_TOPIC, JSON.stringify({ 
+                type: 'join', 
+                playerId,
+                name: playerName
+            }));
+
             joinBtn.classList.add('hidden');
+            playerNameInput.classList.add('hidden');
+            document.querySelector('label[for="player-name-input"]').classList.add('hidden');
             statusMessage.textContent = '已加入遊戲，等待主持人開始...';
         });
 
@@ -121,12 +138,18 @@ document.addEventListener('DOMContentLoaded', () => {
             bodyEl.classList.add('flash');
             setTimeout(() => bodyEl.classList.remove('flash'), 200);
 
-            // 發送訊息
-            mqttClient.publish(MQTT_TOPIC, JSON.stringify({ type: 'move', playerId }));
+            // 發送訊息，包含玩家的動作時間戳
+            mqttClient.publish(MQTT_TOPIC, JSON.stringify({ 
+                type: 'move', 
+                playerId,
+                timestamp: now // 附上精確的動作時間
+            }));
         }
     }
 
     // --- Event Listeners ---
     joinBtn.addEventListener('click', requestMotionPermission);
 
+    // --- Initial Setup ---
+    playerNameInput.placeholder = generateRandomName();
 }); 
